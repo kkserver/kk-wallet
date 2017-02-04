@@ -36,7 +36,7 @@ func (S *TransactionService) HandleTransactionQueryTask(a IWalletApp, task *Tran
 	sql := bytes.NewBuffer(nil)
 	args := []interface{}{}
 
-	sql.WriteString(" WHERE walletId=?")
+	sql.WriteString(" WHERE walletid=?")
 
 	args = append(args, task.WalletId)
 
