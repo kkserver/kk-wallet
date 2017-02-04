@@ -61,7 +61,7 @@ func (S *TransactionService) HandleTransactionQueryTask(a IWalletApp, task *Tran
 		var counter = TransactionQueryCounter{}
 		counter.PageIndex = pageIndex
 		counter.PageSize = pageSize
-		counter.RowCount, err = kk.DBQueryCount(db, a.GetOrderTable(), a.GetPrefix(), sql.String(), args...)
+		counter.RowCount, err = kk.DBQueryCount(db, a.GetTransactionTable(), a.GetPrefix(), sql.String(), args...)
 		if err != nil {
 			task.Result.Errno = ERROR_WALLET
 			task.Result.Errmsg = err.Error()
