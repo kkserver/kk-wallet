@@ -11,11 +11,13 @@ type RevokeTaskResult struct {
 
 type RevokeTask struct {
 	app.Task
-	Freeze   bool   `json:"freeze"`
-	WalletId int64  `json:"walletId"`
-	Value    int64  `json:"value"`
-	Title    string `json:"title"`
-	Result   RevokeTaskResult
+	Freeze     bool   `json:"freeze"`
+	WalletId   int64  `json:"walletId"`
+	Value      int64  `json:"value"`
+	Title      string `json:"title"`
+	PayType    string `json:"payType"`
+	PayTradeNo string `json:"payTradeNo"`
+	Result     RevokeTaskResult
 }
 
 func (task *RevokeTask) GetResult() interface{} {

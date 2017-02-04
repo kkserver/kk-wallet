@@ -1,19 +1,10 @@
 package wallet
 
 import (
-	"crypto/md5"
 	"database/sql"
-	"encoding/hex"
-	"fmt"
 	"github.com/kkserver/kk-lib/kk"
 	"github.com/kkserver/kk-lib/kk/app"
-	"github.com/kkserver/kk-lib/kk/app/client"
 	"github.com/kkserver/kk-lib/kk/app/remote"
-	"github.com/kkserver/kk-lib/kk/json"
-	Value "github.com/kkserver/kk-lib/kk/value"
-	"math/rand"
-	"reflect"
-	"time"
 )
 
 const OrderStatusNone = 0
@@ -25,7 +16,8 @@ const OrderActionNone = 0
 const OrderActionRecharge = 1
 const OrderActionRevoke = 2
 const OrderActionTransfer = 3
-const OrderActionFreeze = 1 << 15
+const OrderActionFreeze = 0x8000
+const OrderActionMask = 0x7fff
 
 type Wallet struct {
 	Id     int64  `json:"id"`
@@ -38,7 +30,6 @@ type Wallet struct {
 
 type Order struct {
 	Id      int64  `json:"id"`
-	Uid     int64  `json:"uid"`
 	Action  int    `json:"action"`
 	Title   string `json:"title"`
 	Options string `json:"options"`
@@ -51,7 +42,6 @@ type Transaction struct {
 	WalletId int64 `json:"walletId"`
 	OrderId  int64 `json:"orderId"`
 	Value    int64 `json:"value"`
-	Freeze   int64 `json:"freeze"`
 	Ctime    int64 `json:"ctime"`
 }
 
@@ -69,6 +59,15 @@ type WalletApp struct {
 	DB *app.DBConfig
 
 	Remote *remote.Service
+
+	Order      *OrderService
+	OrderTable kk.DBTable
+
+	Wallet      *WalletService
+	WalletTable kk.DBTable
+
+	Transaction      *TransactionService
+	TransactionTable kk.DBTable
 }
 
 func (C *WalletApp) GetDB() (*sql.DB, error) {
@@ -80,13 +79,13 @@ func (C *WalletApp) GetPrefix() string {
 }
 
 func (C *WalletApp) GetWalletTable() *kk.DBTable {
-	return nil
+	return &C.WalletTable
 }
 
 func (C *WalletApp) GetOrderTable() *kk.DBTable {
-	return nil
+	return &C.OrderTable
 }
 
 func (C *WalletApp) GetTransactionTable() *kk.DBTable {
-	return nil
+	return &C.TransactionTable
 }
