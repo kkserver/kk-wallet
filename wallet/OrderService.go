@@ -1,10 +1,12 @@
 package wallet
 
 import (
+	"bytes"
 	"github.com/kkserver/kk-lib/kk"
 	"github.com/kkserver/kk-lib/kk/app"
 	"github.com/kkserver/kk-lib/kk/dynamic"
 	"github.com/kkserver/kk-lib/kk/json"
+	"github.com/kkserver/kk-notify/notify"
 	"time"
 )
 
@@ -45,42 +47,81 @@ func (S *OrderService) HandleRechargeTask(a IWalletApp, task *RechargeTask) erro
 		return nil
 	}
 
+	tx, err := db.Begin()
+
 	v := Order{}
 
-	v.Title = task.Title
-	v.Action = OrderActionRecharge
-	v.Ctime = time.Now().Unix()
+	err = func() error {
 
-	if task.Freeze {
-		v.Action = v.Action | OrderActionFreeze
+		if task.Name != "" {
+
+			count, err := kk.DBQueryCount(tx, a.GetOrderTable(), a.GetPrefix(), " WHERE name=?", task.Name)
+
+			if err != nil {
+				return err
+			}
+
+			if count > 0 {
+				return app.NewError(ERROR_WALLET_ORDER_NAME, "Name already exists")
+			}
+		}
+
+		v.Name = task.Name
+		v.Title = task.Title
+		v.Action = OrderActionRecharge
+		v.Ctime = time.Now().Unix()
+		v.NotifyUrl = task.NotifyUrl
+
+		if task.Freeze {
+			v.Action = v.Action | OrderActionFreeze
+		}
+
+		options := map[interface{}]interface{}{}
+
+		dynamic.Each(task.Options, func(key interface{}, value interface{}) bool {
+			options[dynamic.StringValue(key, "")] = value
+			return true
+		})
+
+		items := []interface{}{}
+
+		items = append(items, map[interface{}]interface{}{"walletId": task.WalletId, "value": task.Value})
+
+		options["items"] = items
+
+		b, err := json.Encode(options)
+
+		if err != nil {
+			return err
+		}
+
+		v.Options = string(b)
+
+		_, err = kk.DBInsert(tx, a.GetOrderTable(), a.GetPrefix(), &v)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}()
+
+	if err == nil {
+		err = tx.Commit()
 	}
 
-	options := map[interface{}]interface{}{}
-
-	items := []interface{}{}
-
-	items = append(items, map[interface{}]interface{}{"walletId": task.WalletId, "value": task.Value})
-
-	options["items"] = items
-	options["payType"] = task.PayType
-	options["payTradeNo"] = task.PayTradeNo
-
-	b, err := json.Encode(options)
-
 	if err != nil {
-		task.Result.Errno = ERROR_WALLET
-		task.Result.Errmsg = err.Error()
-		return nil
-	}
-
-	v.Options = string(b)
-
-	_, err = kk.DBInsert(db, a.GetOrderTable(), a.GetPrefix(), &v)
-
-	if err != nil {
-		task.Result.Errno = ERROR_WALLET
-		task.Result.Errmsg = err.Error()
-		return nil
+		tx.Rollback()
+		e, ok := err.(*app.Error)
+		if ok {
+			task.Result.Errno = e.Errno
+			task.Result.Errmsg = e.Errmsg
+			return nil
+		} else {
+			task.Result.Errno = ERROR_WALLET
+			task.Result.Errmsg = err.Error()
+			return nil
+		}
 	}
 
 	task.Result.Order = &v
@@ -112,40 +153,79 @@ func (S *OrderService) HandleRevokeTask(a IWalletApp, task *RevokeTask) error {
 
 	v := Order{}
 
-	v.Title = task.Title
-	v.Action = OrderActionRevoke
-	v.Ctime = time.Now().Unix()
+	tx, err := db.Begin()
 
-	if task.Freeze {
-		v.Action = v.Action | OrderActionFreeze
+	err = func() error {
+
+		if task.Name != "" {
+
+			count, err := kk.DBQueryCount(tx, a.GetOrderTable(), a.GetPrefix(), " WHERE name=?", task.Name)
+
+			if err != nil {
+				return err
+			}
+
+			if count > 0 {
+				return app.NewError(ERROR_WALLET_ORDER_NAME, "Name already exists")
+			}
+		}
+
+		v.Name = task.Name
+		v.Title = task.Title
+		v.Action = OrderActionRevoke
+		v.Ctime = time.Now().Unix()
+		v.NotifyUrl = task.NotifyUrl
+
+		if task.Freeze {
+			v.Action = v.Action | OrderActionFreeze
+		}
+
+		options := map[interface{}]interface{}{}
+
+		dynamic.Each(task.Options, func(key interface{}, value interface{}) bool {
+			options[dynamic.StringValue(key, "")] = value
+			return true
+		})
+
+		items := []interface{}{}
+
+		items = append(items, map[interface{}]interface{}{"walletId": task.WalletId, "value": -task.Value})
+
+		options["items"] = items
+
+		b, err := json.Encode(options)
+
+		if err != nil {
+			return err
+		}
+
+		v.Options = string(b)
+
+		_, err = kk.DBInsert(db, a.GetOrderTable(), a.GetPrefix(), &v)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}()
+
+	if err == nil {
+		err = tx.Commit()
 	}
 
-	options := map[interface{}]interface{}{}
-
-	items := []interface{}{}
-
-	items = append(items, map[interface{}]interface{}{"walletId": task.WalletId, "value": -task.Value})
-
-	options["items"] = items
-	options["payType"] = task.PayType
-	options["payTradeNo"] = task.PayTradeNo
-
-	b, err := json.Encode(options)
-
 	if err != nil {
-		task.Result.Errno = ERROR_WALLET
-		task.Result.Errmsg = err.Error()
-		return nil
-	}
-
-	v.Options = string(b)
-
-	_, err = kk.DBInsert(db, a.GetOrderTable(), a.GetPrefix(), &v)
-
-	if err != nil {
-		task.Result.Errno = ERROR_WALLET
-		task.Result.Errmsg = err.Error()
-		return nil
+		tx.Rollback()
+		e, ok := err.(*app.Error)
+		if ok {
+			task.Result.Errno = e.Errno
+			task.Result.Errmsg = e.Errmsg
+			return nil
+		} else {
+			task.Result.Errno = ERROR_WALLET
+			task.Result.Errmsg = err.Error()
+			return nil
+		}
 	}
 
 	task.Result.Order = &v
@@ -183,40 +263,81 @@ func (S *OrderService) HandleTransferTask(a IWalletApp, task *TransferTask) erro
 
 	v := Order{}
 
-	v.Title = task.Title
-	v.Action = OrderActionTransfer
-	v.Ctime = time.Now().Unix()
+	tx, err := db.Begin()
 
-	if task.Freeze {
-		v.Action = v.Action | OrderActionFreeze
+	err = func() error {
+
+		if task.Name != "" {
+
+			count, err := kk.DBQueryCount(tx, a.GetOrderTable(), a.GetPrefix(), " WHERE name=?", task.Name)
+
+			if err != nil {
+				return err
+			}
+
+			if count > 0 {
+				return app.NewError(ERROR_WALLET_ORDER_NAME, "Name already exists")
+			}
+		}
+
+		v.Name = task.Name
+		v.Title = task.Title
+		v.Action = OrderActionTransfer
+		v.Ctime = time.Now().Unix()
+		v.NotifyUrl = task.NotifyUrl
+
+		if task.Freeze {
+			v.Action = v.Action | OrderActionFreeze
+		}
+
+		options := map[interface{}]interface{}{}
+
+		dynamic.Each(task.Options, func(key interface{}, value interface{}) bool {
+			options[dynamic.StringValue(key, "")] = value
+			return true
+		})
+
+		items := []interface{}{}
+
+		items = append(items,
+			map[interface{}]interface{}{"walletId": task.FwalletId, "value": -task.Value},
+			map[interface{}]interface{}{"walletId": task.TwalletId, "value": task.Value})
+
+		options["items"] = items
+
+		b, err := json.Encode(options)
+
+		if err != nil {
+			return err
+		}
+
+		v.Options = string(b)
+
+		_, err = kk.DBInsert(db, a.GetOrderTable(), a.GetPrefix(), &v)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}()
+
+	if err == nil {
+		err = tx.Commit()
 	}
 
-	options := map[interface{}]interface{}{}
-
-	items := []interface{}{}
-
-	items = append(items,
-		map[interface{}]interface{}{"walletId": task.FwalletId, "value": -task.Value},
-		map[interface{}]interface{}{"walletId": task.TwalletId, "value": task.Value})
-
-	options["items"] = items
-
-	b, err := json.Encode(options)
-
 	if err != nil {
-		task.Result.Errno = ERROR_WALLET
-		task.Result.Errmsg = err.Error()
-		return nil
-	}
-
-	v.Options = string(b)
-
-	_, err = kk.DBInsert(db, a.GetOrderTable(), a.GetPrefix(), &v)
-
-	if err != nil {
-		task.Result.Errno = ERROR_WALLET
-		task.Result.Errmsg = err.Error()
-		return nil
+		tx.Rollback()
+		e, ok := err.(*app.Error)
+		if ok {
+			task.Result.Errno = e.Errno
+			task.Result.Errmsg = e.Errmsg
+			return nil
+		} else {
+			task.Result.Errno = ERROR_WALLET
+			task.Result.Errmsg = err.Error()
+			return nil
+		}
 	}
 
 	task.Result.Order = &v
@@ -234,7 +355,7 @@ func (S *OrderService) HandleOrderTask(a IWalletApp, task *OrderTask) error {
 		return nil
 	}
 
-	if task.Id == 0 {
+	if task.Id == 0 && task.Name == "" {
 		task.Result.Errno = ERROR_WALLET_NOT_FOUND_ID
 		task.Result.Errmsg = "Not Found order id"
 		return nil
@@ -242,7 +363,19 @@ func (S *OrderService) HandleOrderTask(a IWalletApp, task *OrderTask) error {
 
 	v := Order{}
 
-	rows, err := kk.DBQuery(db, a.GetOrderTable(), a.GetPrefix(), " WHERE id=?", task.Id)
+	sql := bytes.NewBuffer(nil)
+
+	args := []interface{}{}
+
+	if task.Id != 0 {
+		sql.WriteString(" WHERE id=?")
+		args = append(args, task.Id)
+	} else if task.Name != "" {
+		sql.WriteString(" WHERE name=?")
+		args = append(args, task.Name)
+	}
+
+	rows, err := kk.DBQuery(db, a.GetOrderTable(), a.GetPrefix(), sql.String(), args...)
 
 	if err != nil {
 		task.Result.Errno = ERROR_WALLET
@@ -551,6 +684,14 @@ func (S *OrderService) HandleExecuteTask(a IWalletApp, task *ExecuteTask) error 
 			task.Result.Errmsg = err.Error()
 			return nil
 		}
+	} else if task.Result.Order != nil && task.Result.Order.NotifyUrl != "" {
+		n := notify.NotifyCreateTask{}
+		n.Url = task.Result.Order.NotifyUrl
+		n.Type = "text/json"
+		b, _ := json.Encode(task.Result.Order)
+		n.Content = string(b)
+		n.MaxCount = 20
+		app.Handle(a, &n)
 	}
 
 	return nil
@@ -706,6 +847,14 @@ func (S *OrderService) HandleCancelTask(a IWalletApp, task *CancelTask) error {
 			task.Result.Errmsg = err.Error()
 			return nil
 		}
+	} else if task.Result.Order != nil && task.Result.Order.NotifyUrl != "" {
+		n := notify.NotifyCreateTask{}
+		n.Url = task.Result.Order.NotifyUrl
+		n.Type = "text/json"
+		b, _ := json.Encode(task.Result.Order)
+		n.Content = string(b)
+		n.MaxCount = 20
+		app.Handle(a, &n)
 	}
 
 	return nil

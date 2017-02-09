@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/kkserver/kk-lib/kk"
 	"github.com/kkserver/kk-lib/kk/app"
+	"github.com/kkserver/kk-lib/kk/app/client"
 	"github.com/kkserver/kk-lib/kk/app/remote"
 )
 
@@ -29,12 +30,14 @@ type Wallet struct {
 }
 
 type Order struct {
-	Id      int64  `json:"id"`
-	Action  int    `json:"action"`
-	Title   string `json:"title"`
-	Options string `json:"options"`
-	Status  int    `json:"status"`
-	Ctime   int64  `json:"ctime"`
+	Id        int64  `json:"id"`
+	Name      string `json:"name"`
+	Action    int    `json:"action"`
+	Title     string `json:"title"`
+	Options   string `json:"options"`
+	Status    int    `json:"status"`
+	NotifyUrl string `json:"notifyUrl"`
+	Ctime     int64  `json:"ctime"`
 }
 
 type Transaction struct {
@@ -59,6 +62,9 @@ type WalletApp struct {
 	DB *app.DBConfig
 
 	Remote *remote.Service
+
+	Client       *client.Service
+	NotifyClient *client.WithService
 
 	Order      *OrderService
 	OrderTable kk.DBTable

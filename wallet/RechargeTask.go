@@ -11,13 +11,14 @@ type RechargeTaskResult struct {
 
 type RechargeTask struct {
 	app.Task
-	Freeze     bool   `json:"freeze"`
-	WalletId   int64  `json:"walletId"`
-	Value      int64  `json:"value"`
-	Title      string `json:"title"`
-	PayType    string `json:"payType"`
-	PayTradeNo string `json:"payTradeNo"`
-	Result     RechargeTaskResult
+	Name      string      `json:"name"`
+	Freeze    bool        `json:"freeze"`
+	WalletId  int64       `json:"walletId"`
+	Value     int64       `json:"value"`
+	Title     string      `json:"title"`
+	NotifyUrl string      `json:"notifyUrl"`
+	Options   interface{} `json:"options"`
+	Result    RechargeTaskResult
 }
 
 func (task *RechargeTask) GetResult() interface{} {

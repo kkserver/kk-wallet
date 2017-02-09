@@ -11,11 +11,14 @@ type TransferTaskResult struct {
 
 type TransferTask struct {
 	app.Task
-	Freeze    bool   `json:"freeze"`
-	FwalletId int64  `json:"fwalletId"`
-	TwalletId int64  `json:"twalletId"`
-	Value     int64  `json:"value"`
-	Title     string `json:"title"`
+	Name      string      `json:"name"`
+	Freeze    bool        `json:"freeze"`
+	FwalletId int64       `json:"fwalletId"`
+	TwalletId int64       `json:"twalletId"`
+	Value     int64       `json:"value"`
+	Title     string      `json:"title"`
+	NotifyUrl string      `json:"notifyUrl"`
+	Options   interface{} `json:"options"`
 	Result    TransferTaskResult
 }
 

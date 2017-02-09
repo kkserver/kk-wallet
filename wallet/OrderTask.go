@@ -11,7 +11,8 @@ type OrderTaskResult struct {
 
 type OrderTask struct {
 	app.Task
-	Id     int64 `json:"id"`
+	Id     int64  `json:"id"`
+	Name   string `json:"name"`
 	Result OrderTaskResult
 }
 
