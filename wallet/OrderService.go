@@ -506,11 +506,13 @@ func (S *OrderService) HandleExecuteTask(a IWalletApp, task *ExecuteTask) error 
 						if tran.Value > 0 {
 							wallet.Value = wallet.Value + tran.Value
 							wallet.Freeze = wallet.Freeze - tran.Value
+							wallet.InValue = wallet.InValue + tran.Value
 						} else if tran.Value < 0 {
 							wallet.Freeze = wallet.Freeze + tran.Value
+							wallet.OutValue = wallet.OutValue - tran.Value
 						}
 
-						_, err = kk.DBUpdateWithKeys(tx, a.GetWalletTable(), a.GetPrefix(), &wallet, map[string]bool{"value": true, "freeze": true})
+						_, err = kk.DBUpdateWithKeys(tx, a.GetWalletTable(), a.GetPrefix(), &wallet, map[string]bool{"value": true, "freeze": true, "invalue": true, "outvalue": true})
 
 						if err != nil {
 							return err
@@ -604,6 +606,7 @@ func (S *OrderService) HandleExecuteTask(a IWalletApp, task *ExecuteTask) error 
 						if value > 0 {
 
 							wallet.Value = wallet.Value + value
+							wallet.InValue = wallet.InValue + value
 
 						} else if value < 0 {
 
@@ -613,11 +616,12 @@ func (S *OrderService) HandleExecuteTask(a IWalletApp, task *ExecuteTask) error 
 							}
 
 							wallet.Value = wallet.Value + value
+							wallet.OutValue = wallet.OutValue - value
 
 						}
 					}
 
-					_, err = kk.DBUpdateWithKeys(tx, a.GetWalletTable(), a.GetPrefix(), &wallet, map[string]bool{"value": true, "freeze": true})
+					_, err = kk.DBUpdateWithKeys(tx, a.GetWalletTable(), a.GetPrefix(), &wallet, map[string]bool{"value": true, "freeze": true, "invalue": true, "outvalue": true})
 
 					if err != nil {
 						return false

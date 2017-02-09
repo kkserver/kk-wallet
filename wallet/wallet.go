@@ -21,12 +21,14 @@ const OrderActionFreeze = 0x8000
 const OrderActionMask = 0x7fff
 
 type Wallet struct {
-	Id     int64  `json:"id"`
-	Name   string `json:"name"`
-	Uid    int64  `json:"uid"`
-	Value  int64  `json:"value"`
-	Freeze int64  `json:"freeze"`
-	Ctime  int64  `json:"ctime"`
+	Id       int64  `json:"id"`
+	Name     string `json:"name"`
+	Uid      int64  `json:"uid"`
+	Value    int64  `json:"value"`
+	Freeze   int64  `json:"freeze"`
+	InValue  int64  `json:"inValue"`
+	OutValue int64  `json:"outValue"`
+	Ctime    int64  `json:"ctime"`
 }
 
 type Order struct {
