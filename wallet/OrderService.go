@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"bytes"
+	"database/sql"
 	"github.com/kkserver/kk-lib/kk"
 	"github.com/kkserver/kk-lib/kk/app"
 	"github.com/kkserver/kk-lib/kk/dynamic"
@@ -561,7 +562,9 @@ func (S *OrderService) HandleExecuteTask(a IWalletApp, task *ExecuteTask) error 
 
 					scanner = kk.NewDBScaner(&wallet)
 
-					rs, err := kk.DBQuery(tx, a.GetWalletTable(), a.GetPrefix(), " WHERE id=? FOR UPDATE", walletId)
+					var rs *sql.Rows
+
+					rs, err = kk.DBQuery(tx, a.GetWalletTable(), a.GetPrefix(), " WHERE id=? FOR UPDATE", walletId)
 
 					if err != nil {
 						return false
