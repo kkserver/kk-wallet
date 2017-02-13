@@ -32,14 +32,15 @@ type Wallet struct {
 }
 
 type Order struct {
-	Id        int64  `json:"id"`
-	Name      string `json:"name"`
-	Action    int    `json:"action"`
-	Title     string `json:"title"`
-	Options   string `json:"options"`
-	Status    int    `json:"status"`
-	NotifyUrl string `json:"notifyUrl"`
-	Ctime     int64  `json:"ctime"`
+	Id          int64  `json:"id"`
+	Name        string `json:"name"`
+	Action      int    `json:"action"`
+	Title       string `json:"title"`
+	Options     string `json:"options"`
+	Status      int    `json:"status"`
+	NotifyUrl   string `json:"notifyUrl"`
+	AssociateId int64  `json:"associateId"`
+	Ctime       int64  `json:"ctime"`
 }
 
 type Transaction struct {

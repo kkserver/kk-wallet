@@ -8,6 +8,7 @@ import (
 	"github.com/kkserver/kk-lib/kk/dynamic"
 	"github.com/kkserver/kk-lib/kk/json"
 	"github.com/kkserver/kk-notify/notify"
+	"log"
 	"time"
 )
 
@@ -72,6 +73,7 @@ func (S *OrderService) HandleRechargeTask(a IWalletApp, task *RechargeTask) erro
 		v.Action = OrderActionRecharge
 		v.Ctime = time.Now().Unix()
 		v.NotifyUrl = task.NotifyUrl
+		v.AssociateId = task.AssociateId
 
 		if task.Freeze {
 			v.Action = v.Action | OrderActionFreeze
@@ -176,6 +178,7 @@ func (S *OrderService) HandleRevokeTask(a IWalletApp, task *RevokeTask) error {
 		v.Action = OrderActionRevoke
 		v.Ctime = time.Now().Unix()
 		v.NotifyUrl = task.NotifyUrl
+		v.AssociateId = task.AssociateId
 
 		if task.Freeze {
 			v.Action = v.Action | OrderActionFreeze
@@ -286,6 +289,7 @@ func (S *OrderService) HandleTransferTask(a IWalletApp, task *TransferTask) erro
 		v.Action = OrderActionTransfer
 		v.Ctime = time.Now().Unix()
 		v.NotifyUrl = task.NotifyUrl
+		v.AssociateId = task.AssociateId
 
 		if task.Freeze {
 			v.Action = v.Action | OrderActionFreeze
@@ -699,6 +703,17 @@ func (S *OrderService) HandleExecuteTask(a IWalletApp, task *ExecuteTask) error 
 		n.Content = string(b)
 		n.MaxCount = 20
 		app.Handle(a, &n)
+
+		if task.Result.Order != nil && task.Result.Order.AssociateId != 0 {
+			exec := ExecuteTask{}
+			exec.Id = task.Result.Order.AssociateId
+			app.Handle(a, &exec)
+			if task.Result.Order != nil {
+				log.Println("Wallet", "Execute", "Associate", task.Result.Order)
+			} else {
+				log.Println("Wallet", "Execute", "Associate", "Fail", task.Result.Errno, task.Result.Errmsg)
+			}
+		}
 	}
 
 	return nil
