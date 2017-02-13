@@ -725,6 +725,7 @@ func (S *OrderService) HandleExecuteTask(a IWalletApp, task *ExecuteTask) error 
 		if task.Result.Order != nil && task.Result.Order.AssociateId != 0 {
 			exec := ExecuteTask{}
 			exec.Id = task.Result.Order.AssociateId
+			exec.Options = task.Options
 			app.Handle(a, &exec)
 			if task.Result.Order != nil {
 				log.Println("Wallet", "Execute", "Associate", task.Result.Order)
