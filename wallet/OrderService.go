@@ -695,14 +695,32 @@ func (S *OrderService) HandleExecuteTask(a IWalletApp, task *ExecuteTask) error 
 			task.Result.Errmsg = err.Error()
 			return nil
 		}
-	} else if task.Result.Order != nil && task.Result.Order.NotifyUrl != "" {
-		n := notify.NotifyCreateTask{}
-		n.Url = task.Result.Order.NotifyUrl
-		n.Type = "text/json"
-		b, _ := json.Encode(task.Result.Order)
-		n.Content = string(b)
-		n.MaxCount = 20
-		app.Handle(a, &n)
+	} else {
+
+		if task.Options != nil && task.Result.Order != nil && task.Result.Order.Options != "" {
+			var options interface{} = nil
+			json.Decode([]byte(task.Result.Order.Options), &options)
+			if options == nil {
+				options = map[interface{}]interface{}{}
+			}
+			dynamic.Each(task.Options, func(key interface{}, value interface{}) bool {
+				dynamic.Set(options, dynamic.StringValue(key, ""), value)
+				return true
+			})
+			b, _ := json.Encode(options)
+			task.Result.Order.Options = string(b)
+			kk.DBUpdateWithKeys(db, a.GetOrderTable(), a.GetPrefix(), task.Result.Order.Options, map[string]bool{"options": true})
+		}
+
+		if task.Result.Order != nil && task.Result.Order.NotifyUrl != "" {
+			n := notify.NotifyCreateTask{}
+			n.Url = task.Result.Order.NotifyUrl
+			n.Type = "text/json"
+			b, _ := json.Encode(task.Result.Order)
+			n.Content = string(b)
+			n.MaxCount = 20
+			app.Handle(a, &n)
+		}
 
 		if task.Result.Order != nil && task.Result.Order.AssociateId != 0 {
 			exec := ExecuteTask{}
@@ -714,6 +732,7 @@ func (S *OrderService) HandleExecuteTask(a IWalletApp, task *ExecuteTask) error 
 				log.Println("Wallet", "Execute", "Associate", "Fail", task.Result.Errno, task.Result.Errmsg)
 			}
 		}
+
 	}
 
 	return nil
@@ -869,14 +888,33 @@ func (S *OrderService) HandleCancelTask(a IWalletApp, task *CancelTask) error {
 			task.Result.Errmsg = err.Error()
 			return nil
 		}
-	} else if task.Result.Order != nil && task.Result.Order.NotifyUrl != "" {
-		n := notify.NotifyCreateTask{}
-		n.Url = task.Result.Order.NotifyUrl
-		n.Type = "text/json"
-		b, _ := json.Encode(task.Result.Order)
-		n.Content = string(b)
-		n.MaxCount = 20
-		app.Handle(a, &n)
+	} else {
+
+		if task.Result.Order != nil && task.Result.Order.NotifyUrl != "" {
+			n := notify.NotifyCreateTask{}
+			n.Url = task.Result.Order.NotifyUrl
+			n.Type = "text/json"
+			b, _ := json.Encode(task.Result.Order)
+			n.Content = string(b)
+			n.MaxCount = 20
+			app.Handle(a, &n)
+		}
+
+		if task.Options != nil && task.Result.Order != nil && task.Result.Order.Options != "" {
+			var options interface{} = nil
+			json.Decode([]byte(task.Result.Order.Options), &options)
+			if options == nil {
+				options = map[interface{}]interface{}{}
+			}
+			dynamic.Each(task.Options, func(key interface{}, value interface{}) bool {
+				dynamic.Set(options, dynamic.StringValue(key, ""), value)
+				return true
+			})
+			b, _ := json.Encode(options)
+			task.Result.Order.Options = string(b)
+			kk.DBUpdateWithKeys(db, a.GetOrderTable(), a.GetPrefix(), task.Result.Order.Options, map[string]bool{"options": true})
+		}
+
 	}
 
 	return nil

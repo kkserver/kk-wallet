@@ -11,8 +11,9 @@ type CancelTaskResult struct {
 
 type CancelTask struct {
 	app.Task
-	Id     int64 `json:"id"`
-	Result CancelTaskResult
+	Id      int64       `json:"id"`
+	Options interface{} `json:"options"`
+	Result  CancelTaskResult
 }
 
 func (task *CancelTask) GetResult() interface{} {

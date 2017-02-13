@@ -11,8 +11,9 @@ type ExecuteTaskResult struct {
 
 type ExecuteTask struct {
 	app.Task
-	Id     int64 `json:"id"`
-	Result ExecuteTaskResult
+	Id      int64       `json:"id"`
+	Options interface{} `json:"options"`
+	Result  ExecuteTaskResult
 }
 
 func (task *ExecuteTask) GetResult() interface{} {
