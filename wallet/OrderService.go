@@ -722,7 +722,7 @@ func (S *OrderService) HandleExecuteTask(a IWalletApp, task *ExecuteTask) error 
 			app.Handle(a, &n)
 		}
 
-		if task.Result.Order != nil && task.Result.Order.AssociateId != 0 {
+		if task.Result.Order != nil && task.Result.Order.Status == OrderStatusOK && task.Result.Order.AssociateId != 0 {
 			exec := ExecuteTask{}
 			exec.Id = task.Result.Order.AssociateId
 			exec.Options = task.Options
