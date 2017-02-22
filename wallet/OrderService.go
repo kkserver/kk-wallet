@@ -709,7 +709,7 @@ func (S *OrderService) HandleExecuteTask(a IWalletApp, task *ExecuteTask) error 
 			})
 			b, _ := json.Encode(options)
 			task.Result.Order.Options = string(b)
-			kk.DBUpdateWithKeys(db, a.GetOrderTable(), a.GetPrefix(), task.Result.Order.Options, map[string]bool{"options": true})
+			kk.DBUpdateWithKeys(db, a.GetOrderTable(), a.GetPrefix(), task.Result.Order, map[string]bool{"options": true})
 		}
 
 		if task.Result.Order != nil && task.Result.Order.NotifyUrl != "" {
@@ -913,7 +913,7 @@ func (S *OrderService) HandleCancelTask(a IWalletApp, task *CancelTask) error {
 			})
 			b, _ := json.Encode(options)
 			task.Result.Order.Options = string(b)
-			kk.DBUpdateWithKeys(db, a.GetOrderTable(), a.GetPrefix(), task.Result.Order.Options, map[string]bool{"options": true})
+			kk.DBUpdateWithKeys(db, a.GetOrderTable(), a.GetPrefix(), task.Result.Order, map[string]bool{"options": true})
 		}
 
 	}
