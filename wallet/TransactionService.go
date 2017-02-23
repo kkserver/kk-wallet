@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/kkserver/kk-lib/kk"
 	"github.com/kkserver/kk-lib/kk/app"
+	"strings"
 )
 
 type TransactionService struct {
@@ -36,14 +37,40 @@ func (S *TransactionService) HandleTransactionQueryTask(a IWalletApp, task *Tran
 	sql := bytes.NewBuffer(nil)
 	args := []interface{}{}
 
-	sql.WriteString(" WHERE walletid=?")
+	if task.Status == "" {
+		sql.WriteString(fmt.Sprintf("FROM %s%s as t", a.GetPrefix(), a.GetTransactionTable().Name))
+	} else {
+		sql.WriteString(fmt.Sprintf("FROM %s%s as t LEFT JOIN %s%s as o ON t.orderid=o.id", a.GetPrefix(), a.GetTransactionTable().Name, a.GetPrefix(), a.GetOrderTable().Name))
+	}
+
+	sql.WriteString(" WHERE t.walletid=?")
 
 	args = append(args, task.WalletId)
 
+	if task.OrderId != 0 {
+		sql.WriteString(" AND t.orderid=?")
+		args = append(args, task.OrderId)
+	}
+
+	if task.Status != "" {
+
+		sql.WriteString(" AND o.status IN (")
+
+		for i, s := range strings.Split(task.Status, ",") {
+			if i != 0 {
+				sql.WriteString(",")
+			}
+			sql.WriteString("?")
+			args = append(args, s)
+		}
+
+		sql.WriteString(")")
+
+	}
 	if task.OrderBy == "asc" {
-		sql.WriteString(" ORDER BY id ASC")
+		sql.WriteString(" ORDER BY t.id ASC")
 	} else {
-		sql.WriteString(" ORDER BY id DESC")
+		sql.WriteString(" ORDER BY t.id DESC")
 	}
 
 	var pageIndex = task.PageIndex
@@ -61,12 +88,28 @@ func (S *TransactionService) HandleTransactionQueryTask(a IWalletApp, task *Tran
 		var counter = TransactionQueryCounter{}
 		counter.PageIndex = pageIndex
 		counter.PageSize = pageSize
-		counter.RowCount, err = kk.DBQueryCount(db, a.GetTransactionTable(), a.GetPrefix(), sql.String(), args...)
+
+		rs, err := db.Query("SELECT COUNT(*) "+sql.String(), args...)
+
 		if err != nil {
 			task.Result.Errno = ERROR_WALLET
 			task.Result.Errmsg = err.Error()
 			return nil
 		}
+
+		defer rs.Close()
+
+		if rs.Next() {
+
+			err = rs.Scan(&counter.RowCount)
+
+			if err != nil {
+				task.Result.Errno = ERROR_WALLET
+				task.Result.Errmsg = err.Error()
+				return nil
+			}
+		}
+
 		if counter.RowCount%pageSize == 0 {
 			counter.PageCount = counter.RowCount / pageSize
 		} else {
@@ -81,7 +124,7 @@ func (S *TransactionService) HandleTransactionQueryTask(a IWalletApp, task *Tran
 	var v = Transaction{}
 	var scanner = kk.NewDBScaner(&v)
 
-	rows, err := kk.DBQuery(db, a.GetTransactionTable(), a.GetPrefix(), sql.String(), args...)
+	rows, err := db.Query("SELECT t.* "+sql.String(), args...)
 
 	if err != nil {
 		task.Result.Errno = ERROR_WALLET

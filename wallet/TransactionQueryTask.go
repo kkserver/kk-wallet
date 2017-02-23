@@ -20,6 +20,8 @@ type TransactionQueryTaskResult struct {
 type TransactionQueryTask struct {
 	app.Task
 	WalletId  int64  `json:"walletId"`
+	OrderId   int64  `json:"orderId"`
+	Status    string `json:"status"`
 	OrderBy   string `json:"orderBy"` // desc, asc
 	PageIndex int    `json:"p"`
 	PageSize  int    `json:"size"`

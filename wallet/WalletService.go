@@ -53,52 +53,75 @@ func (S *WalletService) HandleWalletTask(a IWalletApp, task *WalletTask) error {
 		args = append(args, task.Uid)
 	}
 
-	rows, err := kk.DBQuery(db, a.GetWalletTable(), a.GetPrefix(), sql.String(), args...)
-
-	if err != nil {
-		task.Result.Errno = ERROR_WALLET
-		task.Result.Errmsg = err.Error()
-		return nil
-	}
-
-	defer rows.Close()
+	sql.WriteString(" ORDER BY id ASC LIMIT 1")
 
 	v := Wallet{}
 
-	if rows.Next() {
+	tx, err := db.Begin()
 
-		scanner := kk.NewDBScaner(&v)
+	err = func() error {
 
-		err = scanner.Scan(rows)
-
-		if err != nil {
-			task.Result.Errno = ERROR_WALLET
-			task.Result.Errmsg = err.Error()
-			return nil
-		}
-
-		task.Result.Wallet = &v
-
-	} else if task.Autocreate {
-
-		v.Uid = task.Uid
-		v.Name = task.Name
-		v.Ctime = time.Now().Unix()
-
-		_, err = kk.DBInsert(db, a.GetWalletTable(), a.GetPrefix(), &v)
+		rows, err := kk.DBQuery(tx, a.GetWalletTable(), a.GetPrefix(), sql.String(), args...)
 
 		if err != nil {
-			task.Result.Errno = ERROR_WALLET
-			task.Result.Errmsg = err.Error()
-			return nil
+			return err
 		}
 
-		task.Result.Wallet = &v
+		if rows.Next() {
 
-	} else {
-		task.Result.Errno = ERROR_WALLET_NOT_FOUND
-		task.Result.Errmsg = "Not Found wallet"
+			scanner := kk.NewDBScaner(&v)
+
+			err = scanner.Scan(rows)
+
+			rows.Close()
+
+			if err != nil {
+				return err
+			}
+
+			task.Result.Wallet = &v
+
+		} else {
+			rows.Close()
+
+			if task.Name != "" && task.Autocreate {
+
+				v.Uid = task.Uid
+				v.Name = task.Name
+				v.Ctime = time.Now().Unix()
+
+				_, err = kk.DBInsert(tx, a.GetWalletTable(), a.GetPrefix(), &v)
+
+				if err != nil {
+					return err
+				}
+
+				task.Result.Wallet = &v
+
+			} else {
+				return app.NewError(ERROR_WALLET_NOT_FOUND, "Not Found wallet")
+			}
+		}
+
 		return nil
+	}()
+
+	if err == nil {
+		err = tx.Commit()
+	}
+
+	if err != nil {
+		tx.Rollback()
+		e, ok := err.(*app.Error)
+		if ok {
+			task.Result.Errno = e.Errno
+			task.Result.Errmsg = e.Errmsg
+			return nil
+		} else {
+			task.Result.Errno = ERROR_WALLET
+			task.Result.Errmsg = err.Error()
+			return nil
+		}
 	}
 
 	return nil
